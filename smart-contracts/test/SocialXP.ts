@@ -1,4 +1,5 @@
-import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
+import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { latest } from "@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
@@ -41,7 +42,13 @@ describe("SocialXP", function () {
             await contract.deposit('projectId', { value: 100 })
             expect((await contract.projects('projectId')).deposit).to.eq(180)
         })
-        it("should set the project deposit timestamp")
+        it("should set the project deposit timestamp", async function () {
+            const { contract } = await loadFixture(deploy)
+            expect((await contract.projects('projectId')).depositUpdatedAt).to.eq(0)
+            const latest = await time.latest()
+            await contract.deposit('projectId', { value: 100 })
+            expect((await contract.projects('projectId')).depositUpdatedAt).to.eq(latest + 1)
+        })
         describe("Validations", function () {
             it("should revert if projectId_ is empty", async function () {
                 const { contract } = await loadFixture(deploy)
@@ -73,7 +80,13 @@ describe("SocialXP", function () {
             await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
             expect((await contract.projects('projectId')).owner).to.eq(projectOwner.address)
         })
-        it("should set the project owner timestamp")
+        it("should set the project owner timestamp", async function () {
+            const { contract, relay, projectOwner } = await loadFixture(deploy)
+            expect((await contract.projects('projectId')).ownerUpdatedAt).to.eq(0)
+            const latest = await time.latest()
+            await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
+            expect((await contract.projects('projectId')).ownerUpdatedAt).to.eq(latest + 1)
+        })
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectOwner } = await loadFixture(deploy)
@@ -112,7 +125,13 @@ describe("SocialXP", function () {
             await contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)
             expect((await contract.getProjectMember('projectId', 'memberId'))[0]).to.eq(projectMember.address)
         })
-        it("should set the member timestamp")
+        it("should set the member timestamp", async function () {
+            const { contract, relay, projectMember } = await loadFixture(deploy)
+            expect((await contract.getProjectMember('projectId', 'memberId'))[1]).to.eq(0)
+            const latest = await time.latest()
+            await contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)
+            expect((await contract.getProjectMember('projectId', 'memberId'))[1]).to.eq(latest + 1)
+        })
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectMember } = await loadFixture(deploy)
