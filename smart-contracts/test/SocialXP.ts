@@ -35,18 +35,35 @@ describe("SocialXP", function () {
         })
         it("should increase the project deposit by 90% of the deposit", async function () {
             const { contract } = await loadFixture(deploy)
-            expect(await contract.deposits('chat_id')).to.eq(0)
+            expect((await contract.projects('chat_id')).deposit).to.eq(0)
             await contract.deposit('chat_id', { value: 100 })
-            expect(await contract.deposits('chat_id')).to.eq(90)
+            expect((await contract.projects('chat_id')).deposit).to.eq(90)
             await contract.deposit('chat_id', { value: 100 })
-            expect(await contract.deposits('chat_id')).to.eq(180)
+            expect((await contract.projects('chat_id')).deposit).to.eq(180)
         })
     })
 
     describe("Set project ownership", function () {
-        it("should set the owner of the project")
+        it("should set the owner of the project", async function () {
+            const { contract, relay, projectOwner } = await loadFixture(deploy)
+            expect((await contract.projects('chat_id')).owner).to.eq(ethers.constants.AddressZero)
+            await contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)
+            expect((await contract.projects('chat_id')).owner).to.eq(projectOwner.address)
+        })
         describe("Validation", function () {
-            it("should revert if not relay")
+            it("should revert if not relay", async function () {
+                const { contract, projectOwner } = await loadFixture(deploy)
+                await expect(contract.setProjectOwner('chat_id', projectOwner.address)).to.be.revertedWith(
+                    'Caller is not the relay'
+                )
+            })
+            it("should revert if update interval is less than 24h", async function () {
+                const { contract, relay, projectOwner } = await loadFixture(deploy)
+                await contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)
+                await expect(contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)).to.be.revertedWith(
+                    'Can only update every 24 hours'
+                )
+            })
         })
     })
 
