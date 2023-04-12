@@ -5,12 +5,12 @@ import { ethers } from "hardhat";
 describe("SocialXP", function () {
 
     async function deploy() {
-        const [owner, relay, treasury] = await ethers.getSigners();
+        const [owner, relay, treasury, projectOwner, projectMember, attacker] = await ethers.getSigners();
 
         const Contract = await ethers.getContractFactory("SocialXP");
         const contract = await Contract.deploy(relay.address, treasury.address)
 
-        return { contract, owner, relay, treasury }
+        return { contract, owner, relay, treasury, projectOwner, projectMember, attacker }
     }
 
     describe("Deployment", function () {
@@ -25,9 +25,22 @@ describe("SocialXP", function () {
     })
 
     describe("Deposit ETH", function () {
-        it("should transfer 90% of deposit to relay")
-        it("should transfer 10% of deposit to treasury")
-        it("should increase the project deposit by 90% of the deposit")
+        it("should transfer 90% of deposit to relay", async function () {
+            const { contract, relay } = await loadFixture(deploy)
+            await expect(contract.deposit('chat_id', { value: 100 })).to.changeEtherBalance(relay, 90)
+        })
+        it("should transfer 10% of deposit to treasury", async function () {
+            const { contract, treasury } = await loadFixture(deploy)
+            await expect(contract.deposit('chat_id', { value: 100 })).to.changeEtherBalance(treasury, 10)
+        })
+        it("should increase the project deposit by 90% of the deposit", async function () {
+            const { contract } = await loadFixture(deploy)
+            expect(await contract.deposits('chat_id')).to.eq(0)
+            await contract.deposit('chat_id', { value: 100 })
+            expect(await contract.deposits('chat_id')).to.eq(90)
+            await contract.deposit('chat_id', { value: 100 })
+            expect(await contract.deposits('chat_id')).to.eq(180)
+        })
     })
 
     describe("Set project ownership", function () {
