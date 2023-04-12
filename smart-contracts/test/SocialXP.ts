@@ -41,10 +41,18 @@ describe("SocialXP", function () {
             await contract.deposit('chat_id', { value: 100 })
             expect((await contract.projects('chat_id')).deposit).to.eq(180)
         })
+        describe("Events", function () {
+            it("should emit Deposit event", async function () {
+                const { contract, owner } = await loadFixture(deploy)
+                await expect(contract.deposit('chat_id', { value: 100 })).to.emit(contract, "Deposit").withArgs(
+                    'chat_id', 100, owner.address
+                )
+            })
+        })
     })
 
-    describe("Set project ownership", function () {
-        it("should set the owner of the project", async function () {
+    describe("Set project owner", function () {
+        it("should set the project owner", async function () {
             const { contract, relay, projectOwner } = await loadFixture(deploy)
             expect((await contract.projects('chat_id')).owner).to.eq(ethers.constants.AddressZero)
             await contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)
@@ -62,6 +70,14 @@ describe("SocialXP", function () {
                 await contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)
                 await expect(contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)).to.be.revertedWith(
                     'Can only update every 24 hours'
+                )
+            })
+        })
+        describe("Events", function () {
+            it("should emit SetProjectOwner event", async function () {
+                const { contract, relay, projectOwner } = await loadFixture(deploy)
+                await expect(contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)).to.emit(contract, "SetProjectOwner").withArgs(
+                    'chat_id', projectOwner.address
                 )
             })
         })

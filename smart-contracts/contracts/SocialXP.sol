@@ -14,6 +14,9 @@ contract SocialXP {
         uint ownerUpdatedAt;
     }
 
+    event Deposit(string projectId, uint value, address sender);
+    event SetProjectOwner(string projectId, address owner);
+
     mapping(string => Project) public projects;
 
     modifier onlyRelay {
@@ -39,6 +42,7 @@ contract SocialXP {
         Project storage project = projects[projectId_];
         project.deposit += credit;
         project.depositUpdatedAt = block.timestamp;
+        emit Deposit(projectId_, amount, msg.sender);
     }
 
     function setProjectOwner(string calldata projectId_, address address_) external onlyRelay {
@@ -46,6 +50,7 @@ contract SocialXP {
         require(block.timestamp >= project.ownerUpdatedAt + 25 hours, 'Can only update every 24 hours');
         project.owner = address_;
         project.ownerUpdatedAt = block.timestamp;
+        emit SetProjectOwner(projectId_, address_);
     }
 
 }
