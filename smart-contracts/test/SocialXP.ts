@@ -27,25 +27,39 @@ describe("SocialXP", function () {
     describe("Deposit ETH", function () {
         it("should transfer 90% of deposit to relay", async function () {
             const { contract, relay } = await loadFixture(deploy)
-            await expect(contract.deposit('chat_id', { value: 100 })).to.changeEtherBalance(relay, 90)
+            await expect(contract.deposit('projectId', { value: 100 })).to.changeEtherBalance(relay, 90)
         })
         it("should transfer 10% of deposit to treasury", async function () {
             const { contract, treasury } = await loadFixture(deploy)
-            await expect(contract.deposit('chat_id', { value: 100 })).to.changeEtherBalance(treasury, 10)
+            await expect(contract.deposit('projectId', { value: 100 })).to.changeEtherBalance(treasury, 10)
         })
         it("should increase the project deposit by 90% of the deposit", async function () {
             const { contract } = await loadFixture(deploy)
-            expect((await contract.projects('chat_id')).deposit).to.eq(0)
-            await contract.deposit('chat_id', { value: 100 })
-            expect((await contract.projects('chat_id')).deposit).to.eq(90)
-            await contract.deposit('chat_id', { value: 100 })
-            expect((await contract.projects('chat_id')).deposit).to.eq(180)
+            expect((await contract.projects('projectId')).deposit).to.eq(0)
+            await contract.deposit('projectId', { value: 100 })
+            expect((await contract.projects('projectId')).deposit).to.eq(90)
+            await contract.deposit('projectId', { value: 100 })
+            expect((await contract.projects('projectId')).deposit).to.eq(180)
+        })
+        describe("Validations", function () {
+            it("should revert if projectId_ is empty", async function () {
+                const { contract } = await loadFixture(deploy)
+                await expect(contract.deposit('', { value: 100 })).to.be.revertedWith(
+                    'projectId_ cannot be empty'
+                )
+            })
+            it("should revert if the value is 0", async function () {
+                const { contract } = await loadFixture(deploy)
+                await expect(contract.deposit('projectId')).to.be.revertedWith(
+                    'value cannot be 0'
+                )
+            })
         })
         describe("Events", function () {
             it("should emit Deposit event", async function () {
                 const { contract, owner } = await loadFixture(deploy)
-                await expect(contract.deposit('chat_id', { value: 100 })).to.emit(contract, "Deposit").withArgs(
-                    'chat_id', 100, owner.address
+                await expect(contract.deposit('projectId', { value: 100 })).to.emit(contract, "Deposit").withArgs(
+                    'projectId', 100, owner.address
                 )
             })
         })
@@ -54,30 +68,36 @@ describe("SocialXP", function () {
     describe("Set project owner", function () {
         it("should set the project owner", async function () {
             const { contract, relay, projectOwner } = await loadFixture(deploy)
-            expect((await contract.projects('chat_id')).owner).to.eq(ethers.constants.AddressZero)
-            await contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)
-            expect((await contract.projects('chat_id')).owner).to.eq(projectOwner.address)
+            expect((await contract.projects('projectId')).owner).to.eq(ethers.constants.AddressZero)
+            await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
+            expect((await contract.projects('projectId')).owner).to.eq(projectOwner.address)
         })
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectOwner } = await loadFixture(deploy)
-                await expect(contract.setProjectOwner('chat_id', projectOwner.address)).to.be.revertedWith(
-                    'Caller is not the relay'
+                await expect(contract.setProjectOwner('projectId', projectOwner.address)).to.be.revertedWith(
+                    'caller is not the relay'
                 )
             })
             it("should revert if update interval is less than 24h", async function () {
                 const { contract, relay, projectOwner } = await loadFixture(deploy)
-                await contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)
-                await expect(contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)).to.be.revertedWith(
-                    'Can only update every 24 hours'
+                await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
+                await expect(contract.connect(relay).setProjectOwner('projectId', projectOwner.address)).to.be.revertedWith(
+                    'can only update every 24 hours'
+                )
+            })
+            it("should revert if projectId_ is empty", async function () {
+                const { contract, relay, projectOwner } = await loadFixture(deploy)
+                await expect(contract.connect(relay).setProjectOwner('', projectOwner.address)).to.be.revertedWith(
+                    'projectId_ cannot be empty'
                 )
             })
         })
         describe("Events", function () {
             it("should emit SetProjectOwner event", async function () {
                 const { contract, relay, projectOwner } = await loadFixture(deploy)
-                await expect(contract.connect(relay).setProjectOwner('chat_id', projectOwner.address)).to.emit(contract, "SetProjectOwner").withArgs(
-                    'chat_id', projectOwner.address
+                await expect(contract.connect(relay).setProjectOwner('projectId', projectOwner.address)).to.emit(contract, "SetProjectOwner").withArgs(
+                    'projectId', projectOwner.address
                 )
             })
         })
