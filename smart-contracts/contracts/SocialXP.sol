@@ -6,21 +6,34 @@ contract SocialXP {
     address payable public relay;
     address payable public treasury;
 
+    struct Member {
+        address memberAddress;
+        uint updatedAt;
+    }
+
     struct Project {
         uint deposit;
         uint depositUpdatedAt;
 
         address owner;
         uint ownerUpdatedAt;
+
+        mapping(string => Member) members;
     }
 
     event Deposit(string projectId, uint value, address sender);
     event SetProjectOwner(string projectId, address owner);
+    event SetProjectMember(string projectId, string memberId, address memberAddress);
 
     mapping(string => Project) public projects;
 
     modifier checkProjectId(string calldata projectId_) {
         require(bytes(projectId_).length > 0, 'projectId_ cannot be empty');
+        _;
+    }
+
+    modifier checkMemberId(string calldata memberId_) {
+        require(bytes(memberId_).length > 0, 'memberId_ cannot be empty');
         _;
     }
 
@@ -57,6 +70,18 @@ contract SocialXP {
         project.owner = address_;
         project.ownerUpdatedAt = block.timestamp;
         emit SetProjectOwner(projectId_, address_);
+    }
+
+    function getProjectMember(string calldata projectId_, string calldata memberId_) external view returns (Member memory member) {
+        member = projects[projectId_].members[memberId_];
+    }
+
+    function setProjectMember(string calldata projectId_, string calldata memberId_, address address_) external checkProjectId(projectId_) checkMemberId(memberId_) onlyRelay {
+        Member storage member = projects[projectId_].members[memberId_];
+        require(block.timestamp >= member.updatedAt + 24 hours, 'can only update every 24 hours');
+        member.memberAddress = address_;
+        member.updatedAt = block.timestamp;
+        emit SetProjectMember(projectId_, memberId_, address_);
     }
 
 }

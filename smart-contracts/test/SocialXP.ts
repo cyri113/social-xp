@@ -41,6 +41,7 @@ describe("SocialXP", function () {
             await contract.deposit('projectId', { value: 100 })
             expect((await contract.projects('projectId')).deposit).to.eq(180)
         })
+        it("should set the project deposit timestamp")
         describe("Validations", function () {
             it("should revert if projectId_ is empty", async function () {
                 const { contract } = await loadFixture(deploy)
@@ -72,6 +73,7 @@ describe("SocialXP", function () {
             await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
             expect((await contract.projects('projectId')).owner).to.eq(projectOwner.address)
         })
+        it("should set the project owner timestamp")
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectOwner } = await loadFixture(deploy)
@@ -103,11 +105,48 @@ describe("SocialXP", function () {
         })
     })
 
-    describe("Connect", function () {
-        it("should set the address for a member id")
-        it("should set update_at timestamp")
+    describe("Set project member", function () {
+        it("should set the address for a member id", async function () {
+            const { contract, relay, projectMember } = await loadFixture(deploy)
+            expect((await contract.getProjectMember('projectId', 'memberId'))[0]).to.eq(ethers.constants.AddressZero)
+            await contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)
+            expect((await contract.getProjectMember('projectId', 'memberId'))[0]).to.eq(projectMember.address)
+        })
+        it("should set the member timestamp")
         describe("Validation", function () {
-            it("should revert if last update was less than 24h ago.")
+            it("should revert if not relay", async function () {
+                const { contract, projectMember } = await loadFixture(deploy)
+                await expect(contract.setProjectMember('projectId', 'memberId', projectMember.address)).to.be.revertedWith(
+                    'caller is not the relay'
+                )
+            })
+            it("should revert if update interval is less than 24h", async function () {
+                const { contract, relay, projectMember } = await loadFixture(deploy)
+                await contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)
+                await expect(contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)).to.be.revertedWith(
+                    'can only update every 24 hours'
+                )
+            })
+            it("should revert if projectId_ is empty", async function () {
+                const { contract, relay, projectMember } = await loadFixture(deploy)
+                await expect(contract.connect(relay).setProjectMember('', 'memberId', projectMember.address)).to.be.revertedWith(
+                    'projectId_ cannot be empty'
+                )
+            })
+            it("should revert if memberId_ is empty", async function () {
+                const { contract, relay, projectMember } = await loadFixture(deploy)
+                await expect(contract.connect(relay).setProjectMember('projectId', '', projectMember.address)).to.be.revertedWith(
+                    'memberId_ cannot be empty'
+                )
+            })
+        })
+        describe("Events", function () {
+            it("should emit SetProjectMember event", async function () {
+                const { contract, relay, projectMember } = await loadFixture(deploy)
+                await expect(contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)).to.emit(contract, "SetProjectMember").withArgs(
+                    'projectId', 'memberId', projectMember.address
+                )
+            })
         })
     })
 
