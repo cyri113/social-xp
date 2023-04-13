@@ -13,8 +13,11 @@ time by burning their tokens too.
 
 import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract SocialXP is Ownable {
+    using Counters for Counters.Counter;
+
     struct FeeStructure {
         uint projectMemberFee;
         uint projectOwnerFee;
@@ -35,9 +38,14 @@ contract SocialXP is Ownable {
         mapping(string => Member) members;
         mapping(address => uint) balanceOf;
         uint totalSupply;
-        uint counter;
+        Counters.Counter counter;
         mapping(uint => address) accounts;
     }
+
+    mapping(string => Project) public projects;
+    mapping(uint => string) private projectIds;
+
+    Counters.Counter counter;
 
     address payable public relay;
     address payable public treasury;
@@ -57,7 +65,6 @@ contract SocialXP is Ownable {
     event Burn(string projectId, address account, uint amount);
     event SetFees(FeeStructure fees);
 
-    mapping(string => Project) public projects;
 
     modifier checkProjectId(string calldata projectId_) {
         require(bytes(projectId_).length > 0, "projectId_ cannot be empty");
@@ -96,19 +103,27 @@ contract SocialXP is Ownable {
         treasury = treasury_;
     }
 
+    function _checkProject(string calldata projectId_) internal view returns (bool) {
+        for (uint i = 0; i < counter.current(); i++) {
+            if (keccak256(abi.encodePacked(projectIds[i])) == keccak256(abi.encodePacked(projectId_))) return true;
+        }
+        return false;
+    }
+
     function deposit(
         string calldata projectId_
     ) external payable checkProjectId(projectId_) {
-        uint amount = msg.value;
-        require(amount > 0, "value cannot be 0");
-        uint credit = (amount * 90) / 100;
-        uint fee = amount - credit;
-        relay.transfer(credit);
-        treasury.transfer(fee);
+        require(msg.value > 0, "value cannot be 0");
+        relay.transfer(msg.value);
         Project storage project = projects[projectId_];
-        project.deposit += credit;
+        project.deposit += msg.value;
         project.depositUpdatedAt = block.timestamp;
-        emit Deposit(projectId_, amount, msg.sender);
+        emit Deposit(projectId_, msg.value, msg.sender);
+
+        if (!_checkProject(projectId_)) {
+            projectIds[counter.current()] = projectId_;
+            counter.increment();
+        }
     }
 
     function setProjectOwner(
@@ -185,8 +200,8 @@ contract SocialXP is Ownable {
         Project storage project = projects[projectId_];
 
         if (project.balanceOf[account_] == 0) {
-            project.accounts[project.counter] = account_;
-            project.counter++;
+            project.accounts[project.counter.current()] = account_;
+            project.counter.increment();
         }
 
         project.balanceOf[account_] += amount_;
@@ -213,20 +228,20 @@ contract SocialXP is Ownable {
         project.totalSupply -= amount_;
         emit Burn(projectId_, account_, amount_);
 
-        if (project.balanceOf[account_] == 0 && project.counter > 0) {
+        if (project.balanceOf[account_] == 0 && project.counter.current() > 0) {
             uint idx;
-            for (uint i = 0; i < project.counter; i++) {
+            for (uint i = 0; i < project.counter.current(); i++) {
                 if (project.accounts[i] == account_) {
                     idx = i;
                     break;
                 }
             }
 
-            if (idx != project.counter - 1) {
-                project.accounts[idx] = project.accounts[project.counter - 1];
+            if (idx != project.counter.current() - 1) {
+                project.accounts[idx] = project.accounts[project.counter.current() - 1];
             }
-            delete project.accounts[project.counter - 1];
-            project.counter--;
+            delete project.accounts[project.counter.current() - 1];
+            project.counter.decrement();
         }
         project.deposit -= tx.gasprice * fees.burnFee;
     }
@@ -239,7 +254,7 @@ contract SocialXP is Ownable {
         uint accountBalance = project.balanceOf[account_];
         _position = 1;
 
-        for (uint i = 0; i < project.counter; i++) {
+        for (uint i = 0; i < project.counter.current(); i++) {
             address addr = project.accounts[i];
             if (addr == account_) continue; // skip current account
             if (project.balanceOf[addr] > accountBalance) {
@@ -257,7 +272,7 @@ contract SocialXP is Ownable {
     {
         Project storage project = projects[projectId_];
 
-        uint len = project.counter;
+        uint len = project.counter.current();
         accounts = new address[](len);
         balances = new uint[](len);
 
@@ -297,5 +312,13 @@ contract SocialXP is Ownable {
     function setFees(FeeStructure calldata fees_) external onlyOwner {
         fees = fees_;
         emit SetFees(fees_);
+    }
+
+    function sum() external view returns (uint amount) {
+        for (uint i = 0; i < counter.current(); i++) {
+            string memory projectId = projectIds[i];
+            Project storage project = projects[projectId];
+            amount += project.deposit;
+        }
     }
 }

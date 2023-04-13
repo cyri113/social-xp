@@ -31,10 +31,6 @@ describe("SocialXP", function () {
             const { contract, relay } = await loadFixture(deploy)
             expect(await contract.relay()).to.eq(relay.address)
         })
-        it("should have a treasury", async function () {
-            const { contract, treasury } = await loadFixture(deploy)
-            expect(await contract.treasury()).to.eq(treasury.address)
-        })
         it("should have an owner", async function () {
             const { contract, owner } = await loadFixture(deploy)
             expect(await contract.owner()).to.eq(owner.address)
@@ -83,21 +79,17 @@ describe("SocialXP", function () {
     })
 
     describe("Deposit ETH", function () {
-        it("should transfer 90% of deposit to relay", async function () {
+        it("should transfer funds to the relay", async function () {
             const { contract, relay } = await loadFixture(deploy)
-            await expect(contract.deposit('projectId', { value: 100 })).to.changeEtherBalance(relay, 90)
+            await expect(contract.deposit('projectId', { value: 100 })).to.changeEtherBalance(relay, 100)
         })
-        it("should transfer 10% of deposit to treasury", async function () {
-            const { contract, treasury } = await loadFixture(deploy)
-            await expect(contract.deposit('projectId', { value: 100 })).to.changeEtherBalance(treasury, 10)
-        })
-        it("should increase the project deposit by 90% of the deposit", async function () {
+        it("should increase the project deposit", async function () {
             const { contract } = await loadFixture(deploy)
             expect((await contract.projects('projectId')).deposit).to.eq(0)
             await contract.deposit('projectId', { value: 100 })
-            expect((await contract.projects('projectId')).deposit).to.eq(90)
+            expect((await contract.projects('projectId')).deposit).to.eq(100)
             await contract.deposit('projectId', { value: 100 })
-            expect((await contract.projects('projectId')).deposit).to.eq(180)
+            expect((await contract.projects('projectId')).deposit).to.eq(200)
         })
         it("should set the project deposit timestamp", async function () {
             const { contract } = await loadFixture(deploy)
@@ -487,6 +479,34 @@ describe("SocialXP", function () {
                 expected.accounts,
                 expected.balances,
             ])
+        })
+    })
+
+    describe("Sum", function () {
+        it("should return sum deposits", async function () {
+            const { contract, relay, projectOwner, projectMember, attacker } = await loadFixture(deploy)
+            await contract.deposit('project1', { value: ethers.utils.parseEther('1') })
+            await contract.deposit('project2', { value: ethers.utils.parseEther('1') })
+            await contract.deposit('project3', { value: ethers.utils.parseEther('1') })
+            const fees = await contract.fees()
+            let sum = await contract.sum()
+            expect(sum).to.eq(ethers.utils.parseEther('3'))
+            let receipt = await contract.connect(relay).setProjectOwner('project1', projectOwner.address)
+            let tx = await receipt.wait()
+            sum = sum.sub(tx.effectiveGasPrice.mul(fees.projectOwnerFee))
+            expect(await contract.sum()).to.eq(sum)
+            receipt = await contract.connect(relay).setProjectMember('project1', 'memberId', projectMember.address)
+            tx = await receipt.wait()
+            sum = sum.sub(tx.effectiveGasPrice.mul(fees.projectMemberFee))
+            expect(await contract.sum()).to.eq(sum)
+            receipt = await contract.connect(relay).mint('project1', projectMember.address, 100)
+            tx = await receipt.wait()
+            sum = sum.sub(tx.effectiveGasPrice.mul(fees.mintFee))
+            expect(await contract.sum()).to.eq(sum)
+            receipt = await contract.connect(relay).burn('project1', projectMember.address, 100)
+            tx = await receipt.wait()
+            sum = sum.sub(tx.effectiveGasPrice.mul(fees.burnFee))
+            expect(await contract.sum()).to.eq(sum)
         })
     })
 })
