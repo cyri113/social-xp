@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - working-directory: smart-contracts
       - uses: actions/checkout@v3
       - name: Install packages
         uses: actions/setup-node@v3
