@@ -143,16 +143,51 @@ contract SocialXP {
         }
     }
 
-    function rank(string calldata projectId_, address account_) external view returns (uint position) {
+    function position(string calldata projectId_, address account_) external view returns (uint _position) {
         Project storage project = projects[projectId_];
         uint accountBalance = project.balanceOf[account_];
-        position = 1;
+        _position = 1;
 
         for (uint i = 0; i < project.counter; i++) {
             address addr = project.accounts[i];
             if (addr == account_) continue; // skip current account
             if (project.balanceOf[addr] > accountBalance) {
-                position++;
+                _position++;
+            }
+        }
+    }
+
+    function sort(string calldata projectId_) external view returns (address[] memory accounts, uint[] memory balances) {
+        Project storage project = projects[projectId_];
+
+        uint len = project.counter;
+        accounts = new address[](len);
+        balances = new uint[](len);
+
+        for (uint i = 0; i < len; i++) {
+            accounts[i] = project.accounts[i];
+            balances[i] = project.balanceOf[accounts[i]];
+        }
+        quickSort(accounts, balances, 0, len - 1);
+    }
+
+    function quickSort(address[] memory accounts_, uint[] memory balances_, uint left_, uint right_) internal view {
+        if (left_ < right_) {
+            uint pIdx = uint(left_ + (right_ - left_) / 2);
+            uint pVal = balances_[pIdx];
+            uint i = left_;
+            uint j = right_;
+            while (i <= j) {
+                while (balances_[i] > pVal) i++;
+                while (balances_[j] < pVal) j--;
+                if (i < j) {
+                    (accounts_[i], accounts_[j]) = (accounts_[j], accounts_[i]);
+                    (balances_[i], balances_[j]) = (balances_[j], balances_[i]);
+                    i++;
+                    j--;
+                }
+                if (left_ < j) quickSort(accounts_, balances_, left_, j);
+                if (right_ > i) quickSort(accounts_, balances_, i, right_);
             }
         }
     }

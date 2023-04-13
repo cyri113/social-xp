@@ -1,8 +1,8 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { Contract } from "ethers";
 import { ethers } from "hardhat";
+import { BigNumber } from "ethers";
 
 interface Fixture {
     contract: any;
@@ -314,14 +314,41 @@ describe("SocialXP", function () {
         })
     })
 
-    describe("Rank", function () {
-        it("should return the rank based on balance", async function () {
+    describe("Position", function () {
+        it("should return the position based on balance", async function () {
             const { contract, relay, projectOwner, projectMember, attacker } = await loadFixture(deploy)
             await contract.connect(relay).mint('projectId', projectOwner.address, 100)
             await contract.connect(relay).mint('projectId', projectMember.address, 50)
-            expect(await contract.rank('projectId', projectOwner.address)).to.eq(1)
-            expect(await contract.rank('projectId', projectMember.address)).to.eq(2)
-            expect(await contract.rank('projectId', attacker.address)).to.eq(3)
+            expect(await contract.position('projectId', projectOwner.address)).to.eq(1)
+            expect(await contract.position('projectId', projectMember.address)).to.eq(2)
+            expect(await contract.position('projectId', attacker.address)).to.eq(3)
+        })
+    })
+
+    describe("Sort", function () {
+        it("should return an array sorted by balance", async function () {
+            const { contract, relay, projectOwner, projectMember, attacker } = await loadFixture(deploy)
+            await contract.connect(relay).mint('projectId', projectOwner.address, 100)
+            await contract.connect(relay).mint('projectId', projectMember.address, 50)
+            await contract.connect(relay).mint('projectId', attacker.address, 150)
+
+            const expected = {
+                accounts: [
+                    attacker.address,
+                    projectOwner.address,
+                    projectMember.address
+                ],
+                balances: [
+                    BigNumber.from(150),
+                    BigNumber.from(100),
+                    BigNumber.from(50)
+                ]
+            }
+
+            expect(await contract.sort('projectId')).to.deep.eq([
+                expected.accounts,
+                expected.balances,
+            ])
         })
     })
 })
