@@ -4,7 +4,6 @@ pragma solidity ^0.8.18;
 import "hardhat/console.sol";
 
 contract SocialXP {
-
     address payable public relay;
     address payable public treasury;
 
@@ -16,15 +15,11 @@ contract SocialXP {
     struct Project {
         uint deposit;
         uint depositUpdatedAt;
-
         address owner;
         uint ownerUpdatedAt;
-
         mapping(string => Member) members;
         mapping(address => uint) balanceOf;
-
         uint totalSupply;
-
         uint counter;
         mapping(uint => address) accounts;
     }
@@ -38,27 +33,27 @@ contract SocialXP {
     mapping(string => Project) public projects;
 
     modifier checkProjectId(string calldata projectId_) {
-        require(bytes(projectId_).length > 0, 'projectId_ cannot be empty');
+        require(bytes(projectId_).length > 0, "projectId_ cannot be empty");
         _;
     }
 
     modifier checkMemberId(string calldata memberId_) {
-        require(bytes(memberId_).length > 0, 'memberId_ cannot be empty');
-        _;
-    }
-    
-    modifier checkAddressZero(address account_) {
-        require(account_ != address(0), 'account_ cannot be address(0)');
+        require(bytes(memberId_).length > 0, "memberId_ cannot be empty");
         _;
     }
 
-    modifier onlyRelay {
+    modifier checkAddressZero(address account_) {
+        require(account_ != address(0), "account_ cannot be address(0)");
+        _;
+    }
+
+    modifier onlyRelay() {
         _checkRelay();
         _;
     }
 
     function _checkRelay() internal view virtual {
-        require(msg.sender == relay, 'caller is not the relay');
+        require(msg.sender == relay, "caller is not the relay");
     }
 
     constructor(address payable relay_, address payable treasury_) {
@@ -66,9 +61,11 @@ contract SocialXP {
         treasury = treasury_;
     }
 
-    function deposit(string calldata projectId_) payable external checkProjectId(projectId_) {
+    function deposit(
+        string calldata projectId_
+    ) external payable checkProjectId(projectId_) {
         uint amount = msg.value;
-        require(amount > 0, 'value cannot be 0');
+        require(amount > 0, "value cannot be 0");
         uint credit = (amount * 90) / 100;
         uint fee = amount - credit;
         relay.transfer(credit);
@@ -79,32 +76,61 @@ contract SocialXP {
         emit Deposit(projectId_, amount, msg.sender);
     }
 
-    function setProjectOwner(string calldata projectId_, address account_) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
+    function setProjectOwner(
+        string calldata projectId_,
+        address account_
+    ) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
         Project storage project = projects[projectId_];
-        require(block.timestamp >= project.ownerUpdatedAt + 24 hours, 'can only update every 24 hours');
+        require(
+            block.timestamp >= project.ownerUpdatedAt + 24 hours,
+            "can only update every 24 hours"
+        );
         project.owner = account_;
         project.ownerUpdatedAt = block.timestamp;
         emit SetProjectOwner(projectId_, account_);
     }
 
-    function getProjectMember(string calldata projectId_, string calldata memberId_) external view returns (Member memory member) {
+    function getProjectMember(
+        string calldata projectId_,
+        string calldata memberId_
+    ) external view returns (Member memory member) {
         member = projects[projectId_].members[memberId_];
     }
 
-    function setProjectMember(string calldata projectId_, string calldata memberId_, address account_) external checkProjectId(projectId_) checkMemberId(memberId_) checkAddressZero(account_) onlyRelay {
+    function setProjectMember(
+        string calldata projectId_,
+        string calldata memberId_,
+        address account_
+    )
+        external
+        checkProjectId(projectId_)
+        checkMemberId(memberId_)
+        checkAddressZero(account_)
+        onlyRelay
+    {
         Member storage member = projects[projectId_].members[memberId_];
-        require(block.timestamp >= member.updatedAt + 24 hours, 'can only update every 24 hours');
+        require(
+            block.timestamp >= member.updatedAt + 24 hours,
+            "can only update every 24 hours"
+        );
         member.account = account_;
         member.updatedAt = block.timestamp;
         emit SetProjectMember(projectId_, memberId_, account_);
     }
 
-    function balanceOf(string calldata projectId_, address account_) external view returns (uint) {
+    function balanceOf(
+        string calldata projectId_,
+        address account_
+    ) external view returns (uint) {
         return projects[projectId_].balanceOf[account_];
     }
 
-    function mint(string calldata projectId_, address account_, uint amount_) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
-        require(amount_ > 0, 'value cannot be 0');
+    function mint(
+        string calldata projectId_,
+        address account_,
+        uint amount_
+    ) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
+        require(amount_ > 0, "value cannot be 0");
         Project storage project = projects[projectId_];
 
         if (project.balanceOf[account_] == 0) {
@@ -115,13 +141,16 @@ contract SocialXP {
         project.balanceOf[account_] += amount_;
         project.totalSupply += amount_;
         emit Mint(projectId_, account_, amount_);
-
     }
 
-    function burn(string calldata projectId_, address account_, uint amount_) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
-        require(amount_ > 0, 'value cannot be 0');
+    function burn(
+        string calldata projectId_,
+        address account_,
+        uint amount_
+    ) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
+        require(amount_ > 0, "value cannot be 0");
         Project storage project = projects[projectId_];
-        require(project.balanceOf[account_] >= amount_, 'insufficient balance');
+        require(project.balanceOf[account_] >= amount_, "insufficient balance");
         project.balanceOf[account_] -= amount_;
         project.totalSupply -= amount_;
         emit Burn(projectId_, account_, amount_);
@@ -143,7 +172,10 @@ contract SocialXP {
         }
     }
 
-    function position(string calldata projectId_, address account_) external view returns (uint _position) {
+    function position(
+        string calldata projectId_,
+        address account_
+    ) external view returns (uint _position) {
         Project storage project = projects[projectId_];
         uint accountBalance = project.balanceOf[account_];
         _position = 1;
@@ -157,7 +189,13 @@ contract SocialXP {
         }
     }
 
-    function sort(string calldata projectId_) external view returns (address[] memory accounts, uint[] memory balances) {
+    function sort(
+        string calldata projectId_
+    )
+        external
+        view
+        returns (address[] memory accounts, uint[] memory balances)
+    {
         Project storage project = projects[projectId_];
 
         uint len = project.counter;
@@ -171,7 +209,12 @@ contract SocialXP {
         quickSort(accounts, balances, 0, len - 1);
     }
 
-    function quickSort(address[] memory accounts_, uint[] memory balances_, uint left_, uint right_) internal view {
+    function quickSort(
+        address[] memory accounts_,
+        uint[] memory balances_,
+        uint left_,
+        uint right_
+    ) internal view {
         if (left_ < right_) {
             uint pIdx = uint(left_ + (right_ - left_) / 2);
             uint pVal = balances_[pIdx];
@@ -191,5 +234,4 @@ contract SocialXP {
             }
         }
     }
-
 }
