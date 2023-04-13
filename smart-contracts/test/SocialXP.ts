@@ -1,5 +1,4 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
-import { latest } from "@nomicfoundation/hardhat-network-helpers/dist/src/helpers/time";
 import { expect } from "chai";
 import { ethers } from "hardhat";
 
@@ -169,7 +168,53 @@ describe("SocialXP", function () {
         })
     })
 
-    // describe("Mint")
+    describe("Mint", function () {
+        it("should mint tokens for account", async function () {
+            const { contract, relay, projectMember } = await loadFixture(deploy)
+            expect(await contract.balanceOf('projectId', projectMember.address)).to.eq(0)
+            await contract.connect(relay).mint('projectId', projectMember.address, 100)
+            expect(await contract.balanceOf('projectId', projectMember.address)).to.eq(100)
+            await contract.connect(relay).mint('projectId', projectMember.address, 100)
+            expect(await contract.balanceOf('projectId', projectMember.address)).to.eq(200)
+        })
+        it("should increase the total supply of project", async function () {
+            const { contract, relay, projectMember, projectOwner } = await loadFixture(deploy)
+            expect((await contract.projects('projectId')).totalSupply).to.eq(0)
+            await contract.connect(relay).mint('projectId', projectOwner.address, 100)
+            expect((await contract.projects('projectId')).totalSupply).to.eq(100)
+            await contract.connect(relay).mint('projectId', projectMember.address, 100)
+            expect((await contract.projects('projectId')).totalSupply).to.eq(200)
+        })
+        describe("Validation", function () {
+            it("should revert if not relay", async function () {
+                const { contract, projectMember } = await loadFixture(deploy)
+                await expect(contract.mint('projectId', projectMember.address, 100)).to.be.revertedWith(
+                    'caller is not the relay'
+                )
+            })
+            it("should revert if amount_ is 0", async function () {
+                const { contract, relay, projectMember } = await loadFixture(deploy)
+                await expect(contract.connect(relay).mint('projectId', projectMember.address, 0)).to.be.revertedWith(
+                    'value cannot be 0'
+                )
+            })
+            it("should revert if projectId_ is empty", async function () {
+                const { contract, relay, projectMember } = await loadFixture(deploy)
+                await expect(contract.connect(relay).mint('', projectMember.address, 100)).to.be.revertedWith(
+                    'projectId_ cannot be empty'
+                )
+            })
+            it("should revert if account_ is address(0)", async function () {
+                const { contract, relay, projectMember } = await loadFixture(deploy)
+                await expect(contract.connect(relay).mint('projectId', ethers.constants.AddressZero, 100)).to.be.revertedWith(
+                    'account_ cannot be address(0)'
+                )
+            })
+        })
+        describe("Events", function () {
+            it("should emit Mint event")
+        })
+    })
     // describe("Burn")
     // describe("Rank")
     // describe("Rank")

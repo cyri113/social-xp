@@ -7,7 +7,7 @@ contract SocialXP {
     address payable public treasury;
 
     struct Member {
-        address memberAddress;
+        address account;
         uint updatedAt;
     }
 
@@ -19,11 +19,14 @@ contract SocialXP {
         uint ownerUpdatedAt;
 
         mapping(string => Member) members;
+        mapping(address => uint) balanceOf;
+
+        uint totalSupply;
     }
 
     event Deposit(string projectId, uint value, address sender);
     event SetProjectOwner(string projectId, address owner);
-    event SetProjectMember(string projectId, string memberId, address memberAddress);
+    event SetProjectMember(string projectId, string memberId, address account);
 
     mapping(string => Project) public projects;
 
@@ -34,6 +37,11 @@ contract SocialXP {
 
     modifier checkMemberId(string calldata memberId_) {
         require(bytes(memberId_).length > 0, 'memberId_ cannot be empty');
+        _;
+    }
+    
+    modifier checkAddressZero(address account_) {
+        require(account_ != address(0), 'account_ cannot be address(0)');
         _;
     }
 
@@ -64,24 +72,35 @@ contract SocialXP {
         emit Deposit(projectId_, amount, msg.sender);
     }
 
-    function setProjectOwner(string calldata projectId_, address address_) external checkProjectId(projectId_) onlyRelay {
+    function setProjectOwner(string calldata projectId_, address account_) external checkProjectId(projectId_) onlyRelay {
         Project storage project = projects[projectId_];
         require(block.timestamp >= project.ownerUpdatedAt + 24 hours, 'can only update every 24 hours');
-        project.owner = address_;
+        project.owner = account_;
         project.ownerUpdatedAt = block.timestamp;
-        emit SetProjectOwner(projectId_, address_);
+        emit SetProjectOwner(projectId_, account_);
     }
 
     function getProjectMember(string calldata projectId_, string calldata memberId_) external view returns (Member memory member) {
         member = projects[projectId_].members[memberId_];
     }
 
-    function setProjectMember(string calldata projectId_, string calldata memberId_, address address_) external checkProjectId(projectId_) checkMemberId(memberId_) onlyRelay {
+    function setProjectMember(string calldata projectId_, string calldata memberId_, address account_) external checkProjectId(projectId_) checkMemberId(memberId_) onlyRelay {
         Member storage member = projects[projectId_].members[memberId_];
         require(block.timestamp >= member.updatedAt + 24 hours, 'can only update every 24 hours');
-        member.memberAddress = address_;
+        member.account = account_;
         member.updatedAt = block.timestamp;
-        emit SetProjectMember(projectId_, memberId_, address_);
+        emit SetProjectMember(projectId_, memberId_, account_);
+    }
+
+    function balanceOf(string calldata projectId_, address account_) external view returns (uint) {
+        return projects[projectId_].balanceOf[account_];
+    }
+
+    function mint(string calldata projectId_, address account_, uint amount_) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
+        require(amount_ > 0, 'value cannot be 0');
+        Project storage project = projects[projectId_];
+        project.balanceOf[account_] += amount_;
+        project.totalSupply += amount_;
     }
 
 }
