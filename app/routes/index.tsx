@@ -26,7 +26,7 @@ export default function Home() {
           </ul>
 
           <h4 class={'text-gray-900 font-bold text-xl mt-4'}>Add credit (gas ain't free ⛽️)</h4>
-          <p class={'text-gray-500'}>SocialXP is decentralized, and therefore requires writing to the blockchain, unfortunately this costs gas. SocialXP allows you to load gas credits in order to pay for future transactions. It operates on a pay-as-you-go basis, and you can get a refund on unused gas whenever you wish. There is a 10% commission which goes to maintaining SocialXP.</p>
+          <p class={'text-gray-500'}>SocialXP is decentralized, and therefore requires writing to the blockchain, unfortunately this costs gas. SocialXP allows you to load gas credits in order to pay for future transactions. It operates on a pay-as-you-go basis. There is a 10% commission which goes to maintaining SocialXP.</p>
           <ul className={'text-gray-500 list-decimal list-inside flex flex-col gap-4'}>
             <li>In your telegram group, run the command:</li>
             <CopyButton text="/credit" />
@@ -70,7 +70,7 @@ export default function Home() {
           </div>
           <div class={'my-4 flex flex-col gap-2 text-gray-500'}>
             <CopyButton text='/connect <address>' />
-            <p class={'text-gray-500 px-4'}>Associates a give address to the user that enters the command. Users can change their address maximum once a day.</p>
+            <p class={'text-gray-500 px-4'}>Associates a given address to the user that enters the command. Users can change their address maximum once a day.</p>
           </div>
 
           <div class={'my-4 flex flex-col gap-2 text-gray-500'}>
