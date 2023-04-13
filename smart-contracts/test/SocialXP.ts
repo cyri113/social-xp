@@ -314,6 +314,14 @@ describe("SocialXP", function () {
         })
     })
 
-    // describe("Rank")
-    // describe("Rank")
+    describe("Rank", function () {
+        it("should return the rank based on balance", async function () {
+            const { contract, relay, projectOwner, projectMember, attacker } = await loadFixture(deploy)
+            await contract.connect(relay).mint('projectId', projectOwner.address, 100)
+            await contract.connect(relay).mint('projectId', projectMember.address, 50)
+            expect(await contract.rank('projectId', projectOwner.address)).to.eq(1)
+            expect(await contract.rank('projectId', projectMember.address)).to.eq(2)
+            expect(await contract.rank('projectId', attacker.address)).to.eq(3)
+        })
+    })
 })

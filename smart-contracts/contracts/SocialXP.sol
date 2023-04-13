@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.18;
 
+import "hardhat/console.sol";
+
 contract SocialXP {
 
     address payable public relay;
@@ -22,6 +24,9 @@ contract SocialXP {
         mapping(address => uint) balanceOf;
 
         uint totalSupply;
+
+        uint counter;
+        mapping(uint => address) accounts;
     }
 
     event Deposit(string projectId, uint value, address sender);
@@ -101,9 +106,16 @@ contract SocialXP {
     function mint(string calldata projectId_, address account_, uint amount_) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
         require(amount_ > 0, 'value cannot be 0');
         Project storage project = projects[projectId_];
+
+        if (project.balanceOf[account_] == 0) {
+            project.accounts[project.counter] = account_;
+            project.counter++;
+        }
+
         project.balanceOf[account_] += amount_;
         project.totalSupply += amount_;
         emit Mint(projectId_, account_, amount_);
+
     }
 
     function burn(string calldata projectId_, address account_, uint amount_) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
@@ -113,6 +125,36 @@ contract SocialXP {
         project.balanceOf[account_] -= amount_;
         project.totalSupply -= amount_;
         emit Burn(projectId_, account_, amount_);
+
+        if (project.balanceOf[account_] == 0 && project.counter > 0) {
+            uint idx;
+            for (uint i = 0; i < project.counter; i++) {
+                if (project.accounts[i] == account_) {
+                    idx = i;
+                    break;
+                }
+            }
+
+            if (idx != project.counter - 1) {
+                project.accounts[idx] = project.accounts[project.counter - 1];
+            }
+            delete project.accounts[project.counter - 1];
+            project.counter--;
+        }
+    }
+
+    function rank(string calldata projectId_, address account_) external view returns (uint position) {
+        Project storage project = projects[projectId_];
+        uint accountBalance = project.balanceOf[account_];
+        position = 1;
+
+        for (uint i = 0; i < project.counter; i++) {
+            address addr = project.accounts[i];
+            if (addr == account_) continue; // skip current account
+            if (project.balanceOf[addr] > accountBalance) {
+                position++;
+            }
+        }
     }
 
 }
