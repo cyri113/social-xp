@@ -15,8 +15,13 @@ import "hardhat/console.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SocialXP is Ownable {
-    address payable public relay;
-    address payable public treasury;
+    struct FeeStructure {
+        uint gasPrice;
+        uint projectMemberFee;
+        uint projectOwnerFee;
+        uint mintFee;
+        uint burnFee;
+    }
 
     struct Member {
         address account;
@@ -35,11 +40,24 @@ contract SocialXP is Ownable {
         mapping(uint => address) accounts;
     }
 
+    address payable public relay;
+    address payable public treasury;
+
+    FeeStructure public fees =
+        FeeStructure({
+            gasPrice: 21,
+            projectMemberFee: 100000,
+            projectOwnerFee: 100000,
+            mintFee: 150000,
+            burnFee: 50000
+        });
+
     event Deposit(string projectId, uint value, address sender);
     event SetProjectOwner(string projectId, address owner);
     event SetProjectMember(string projectId, string memberId, address account);
     event Mint(string projectId, address account, uint amount);
     event Burn(string projectId, address account, uint amount);
+    event SetFees(FeeStructure fees);
 
     mapping(string => Project) public projects;
 
@@ -265,5 +283,10 @@ contract SocialXP is Ownable {
                 if (right_ > i) quickSort(accounts_, balances_, i, right_);
             }
         }
+    }
+
+    function setFees(FeeStructure calldata fees_) external onlyOwner {
+        fees = fees_;
+        emit SetFees(fees_);
     }
 }

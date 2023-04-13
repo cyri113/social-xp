@@ -6,6 +6,7 @@ import { BigNumber } from "ethers";
 
 interface Fixture {
     contract: any;
+    Contract: any;
     owner: SignerWithAddress;
     relay: SignerWithAddress;
     treasury: SignerWithAddress;
@@ -22,7 +23,7 @@ describe("SocialXP", function () {
         const Contract = await ethers.getContractFactory("SocialXP");
         const contract = await Contract.deploy(relay.address, treasury.address)
 
-        return { contract, owner, relay, treasury, projectOwner, projectMember, attacker }
+        return { contract, Contract, owner, relay, treasury, projectOwner, projectMember, attacker }
     }
 
     describe("Deployment", function () {
@@ -38,10 +39,49 @@ describe("SocialXP", function () {
             const { contract, owner } = await loadFixture(deploy)
             expect(await contract.owner()).to.eq(owner.address)
         })
-        it("should have a setProjectMemberFee")
-        it("should have a setProjectOwnerFee")
-        it("should have a mintFee")
-        it("should have a burnFee")
+        it("should have fees", async function () {
+            const { contract } = await loadFixture(deploy)
+            const expected = [
+                21,
+                100000,
+                100000,
+                150000,
+                50000,
+            ]
+            expect(await contract.fees()).to.deep.eq(expected)
+        })
+    })
+
+    describe("Set Fees", function () {
+
+        const newFees = {
+            gasPrice: 1,
+            projectMemberFee: 2,
+            projectOwnerFee: 3,
+            mintFee: 4,
+            burnFee: 5
+        }
+        const expected = [1, 2, 3, 4, 5]
+
+        it("should set fees", async function () {
+            const { contract } = await loadFixture(deploy)
+            await contract.setFees(newFees)
+            expect(await contract.fees()).to.deep.eq(expected)
+        })
+        describe("Validations", function () {
+            it("should revert if not owner", async function () {
+                const { contract, attacker } = await loadFixture(deploy)
+                await expect(contract.connect(attacker).setFees(newFees)).to.be.revertedWith(
+                    'Ownable: caller is not the owner'
+                )
+            })
+        })
+        describe("Events", function () {
+            it("should emit SetFees event", async function () {
+                const { contract } = await loadFixture(deploy)
+                await expect(contract.setFees(newFees)).to.emit(contract, "SetFees").withArgs(expected)
+            })
+        })
     })
 
     describe("Deposit ETH", function () {
