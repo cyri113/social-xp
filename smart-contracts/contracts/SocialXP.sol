@@ -3,6 +3,16 @@ pragma solidity ^0.8.18;
 
 import "hardhat/console.sol";
 
+/*
+This is the smart contract for the SocialXP Telegram bot (https://t.me/social_xp_bot). 
+The bot provides on-chain rewards for community members. SocialXP is decentralized and 
+therefore requires writing to the blockchain, unfortunately, this costs gas. SocialXP 
+allows you to load gas credits in order to pay for future transactions. It operates on a 
+pay-as-you-go basis. There is a 10% commission that goes to maintaining SocialXP. You can 
+reward your members at any time by minting tokens. You can punish your members at any 
+time by burning their tokens too.
+*/
+
 contract SocialXP {
     address payable public relay;
     address payable public treasury;
