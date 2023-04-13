@@ -72,7 +72,7 @@ contract SocialXP {
         emit Deposit(projectId_, amount, msg.sender);
     }
 
-    function setProjectOwner(string calldata projectId_, address account_) external checkProjectId(projectId_) onlyRelay {
+    function setProjectOwner(string calldata projectId_, address account_) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
         Project storage project = projects[projectId_];
         require(block.timestamp >= project.ownerUpdatedAt + 24 hours, 'can only update every 24 hours');
         project.owner = account_;
@@ -84,7 +84,7 @@ contract SocialXP {
         member = projects[projectId_].members[memberId_];
     }
 
-    function setProjectMember(string calldata projectId_, string calldata memberId_, address account_) external checkProjectId(projectId_) checkMemberId(memberId_) onlyRelay {
+    function setProjectMember(string calldata projectId_, string calldata memberId_, address account_) external checkProjectId(projectId_) checkMemberId(memberId_) checkAddressZero(account_) onlyRelay {
         Member storage member = projects[projectId_].members[memberId_];
         require(block.timestamp >= member.updatedAt + 24 hours, 'can only update every 24 hours');
         member.account = account_;

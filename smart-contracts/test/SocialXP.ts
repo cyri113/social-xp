@@ -106,6 +106,12 @@ describe("SocialXP", function () {
                     'projectId_ cannot be empty'
                 )
             })
+            it("should revert if account_ is address(0)", async function () {
+                const { contract, relay } = await loadFixture(deploy)
+                await expect(contract.connect(relay).setProjectOwner('projectId', ethers.constants.AddressZero)).to.be.revertedWith(
+                    'account_ cannot be address(0)'
+                )
+            })
         })
         describe("Events", function () {
             it("should emit SetProjectOwner event", async function () {
@@ -155,6 +161,12 @@ describe("SocialXP", function () {
                 const { contract, relay, projectMember } = await loadFixture(deploy)
                 await expect(contract.connect(relay).setProjectMember('projectId', '', projectMember.address)).to.be.revertedWith(
                     'memberId_ cannot be empty'
+                )
+            })
+            it("should revert if account_ is address(0)", async function () {
+                const { contract, relay } = await loadFixture(deploy)
+                await expect(contract.connect(relay).setProjectMember('projectId', 'memberId', ethers.constants.AddressZero)).to.be.revertedWith(
+                    'account_ cannot be address(0)'
                 )
             })
         })
