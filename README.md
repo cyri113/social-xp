@@ -1,3 +1,5 @@
+[![Contract CI](https://github.com/cyri113/social-xp/actions/workflows/contract-ci.yml/badge.svg)](https://github.com/cyri113/social-xp/actions/workflows/contract-ci.yml)
+
 # social-xp
 Telegram bot for providing on-chain rewards for community members.
 
