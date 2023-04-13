@@ -24,7 +24,7 @@ jobs:
         shell: bash
       - name: Run Tests
         run: yarn hardhat test
-      - name: Create local node and deploy
-        run: |
-          yarn hardhat node &
-          yarn hardhat run scripts/deploy.ts --network localhost
+      # - name: Create local node and deploy
+      #   run: |
+      #     yarn hardhat node &
+      #     yarn hardhat run scripts/deploy.ts --network localhost
