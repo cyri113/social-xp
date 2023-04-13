@@ -1,6 +1,18 @@
 import { loadFixture, time } from "@nomicfoundation/hardhat-network-helpers";
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { Contract } from "ethers";
 import { ethers } from "hardhat";
+
+interface Fixture {
+    contract: any;
+    owner: SignerWithAddress;
+    relay: SignerWithAddress;
+    treasury: SignerWithAddress;
+    projectOwner: SignerWithAddress;
+    projectMember: SignerWithAddress;
+    attacker: SignerWithAddress;
+};
 
 describe("SocialXP", function () {
 
@@ -232,7 +244,76 @@ describe("SocialXP", function () {
             })
         })
     })
-    // describe("Burn")
+
+    describe("Burn", function () {
+
+        let fixture: Fixture
+
+        beforeEach(async function () {
+            const { contract, relay, projectMember, projectOwner } = fixture = await loadFixture(deploy)
+            await contract.connect(relay).mint('projectId', projectMember.address, 100)
+            await contract.connect(relay).mint('projectId', projectOwner.address, 100)
+            expect(await contract.balanceOf('projectId', projectMember.address)).to.eq(100)
+            expect(await contract.balanceOf('projectId', projectOwner.address)).to.eq(100)
+            expect((await contract.projects('projectId')).totalSupply).to.eq(200)
+        })
+
+        it("should burn tokens for account", async function () {
+            const { contract, relay, projectMember } = fixture
+            await contract.connect(relay).burn('projectId', projectMember.address, 50)
+            expect(await contract.balanceOf('projectId', projectMember.address)).to.eq(50)
+            await contract.connect(relay).burn('projectId', projectMember.address, 50)
+            expect(await contract.balanceOf('projectId', projectMember.address)).to.eq(0)
+        })
+        it("should decrease the total supply of project", async function () {
+            const { contract, relay, projectMember, projectOwner } = fixture
+            await contract.connect(relay).burn('projectId', projectOwner.address, 50)
+            expect((await contract.projects('projectId')).totalSupply).to.eq(150)
+            await contract.connect(relay).burn('projectId', projectMember.address, 50)
+            expect((await contract.projects('projectId')).totalSupply).to.eq(100)
+        })
+        describe("Validation", function () {
+            it("should revert if not relay", async function () {
+                const { contract, projectMember } = fixture
+                await expect(contract.burn('projectId', projectMember.address, 100)).to.be.revertedWith(
+                    'caller is not the relay'
+                )
+            })
+            it("should revert if amount_ is 0", async function () {
+                const { contract, relay, projectMember } = fixture
+                await expect(contract.connect(relay).burn('projectId', projectMember.address, 0)).to.be.revertedWith(
+                    'value cannot be 0'
+                )
+            })
+            it("should revert if projectId_ is empty", async function () {
+                const { contract, relay, projectMember } = fixture
+                await expect(contract.connect(relay).burn('', projectMember.address, 100)).to.be.revertedWith(
+                    'projectId_ cannot be empty'
+                )
+            })
+            it("should revert if account_ is address(0)", async function () {
+                const { contract, relay } = fixture
+                await expect(contract.connect(relay).burn('projectId', ethers.constants.AddressZero, 100)).to.be.revertedWith(
+                    'account_ cannot be address(0)'
+                )
+            })
+            it("should revert if insufficient balance", async function () {
+                const { contract, relay, projectMember } = fixture
+                await expect(contract.connect(relay).burn('projectId', projectMember.address, 500)).to.be.revertedWith(
+                    'insufficient balance'
+                )
+            })
+        })
+        describe("Events", function () {
+            it("should emit Burn event", async function () {
+                const { contract, relay, projectMember } = fixture
+                await expect(contract.connect(relay).burn('projectId', projectMember.address, 100)).to.emit(contract, "Burn").withArgs(
+                    'projectId', projectMember.address, 100
+                )
+            })
+        })
+    })
+
     // describe("Rank")
     // describe("Rank")
 })

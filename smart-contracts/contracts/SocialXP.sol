@@ -28,6 +28,7 @@ contract SocialXP {
     event SetProjectOwner(string projectId, address owner);
     event SetProjectMember(string projectId, string memberId, address account);
     event Mint(string projectId, address account, uint amount);
+    event Burn(string projectId, address account, uint amount);
 
     mapping(string => Project) public projects;
 
@@ -103,6 +104,15 @@ contract SocialXP {
         project.balanceOf[account_] += amount_;
         project.totalSupply += amount_;
         emit Mint(projectId_, account_, amount_);
+    }
+
+    function burn(string calldata projectId_, address account_, uint amount_) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
+        require(amount_ > 0, 'value cannot be 0');
+        Project storage project = projects[projectId_];
+        require(project.balanceOf[account_] >= amount_, 'insufficient balance');
+        project.balanceOf[account_] -= amount_;
+        project.totalSupply -= amount_;
+        emit Burn(projectId_, account_, amount_);
     }
 
 }
