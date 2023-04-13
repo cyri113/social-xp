@@ -48,7 +48,6 @@ contract SocialXP is Ownable {
     Counters.Counter counter;
 
     address payable public relay;
-    address payable public treasury;
 
     FeeStructure public fees =
         FeeStructure({
@@ -64,7 +63,6 @@ contract SocialXP is Ownable {
     event Mint(string projectId, address account, uint amount);
     event Burn(string projectId, address account, uint amount);
     event SetFees(FeeStructure fees);
-
 
     modifier checkProjectId(string calldata projectId_) {
         require(bytes(projectId_).length > 0, "projectId_ cannot be empty");
@@ -98,14 +96,18 @@ contract SocialXP is Ownable {
         require(msg.sender == relay, "caller is not the relay");
     }
 
-    constructor(address payable relay_, address payable treasury_) {
+    constructor(address payable relay_) {
         relay = relay_;
-        treasury = treasury_;
     }
 
-    function _checkProject(string calldata projectId_) internal view returns (bool) {
+    function _checkProject(
+        string calldata projectId_
+    ) internal view returns (bool) {
         for (uint i = 0; i < counter.current(); i++) {
-            if (keccak256(abi.encodePacked(projectIds[i])) == keccak256(abi.encodePacked(projectId_))) return true;
+            if (
+                keccak256(abi.encodePacked(projectIds[i])) ==
+                keccak256(abi.encodePacked(projectId_))
+            ) return true;
         }
         return false;
     }
@@ -238,7 +240,9 @@ contract SocialXP is Ownable {
             }
 
             if (idx != project.counter.current() - 1) {
-                project.accounts[idx] = project.accounts[project.counter.current() - 1];
+                project.accounts[idx] = project.accounts[
+                    project.counter.current() - 1
+                ];
             }
             delete project.accounts[project.counter.current() - 1];
             project.counter.decrement();
@@ -314,7 +318,7 @@ contract SocialXP is Ownable {
         emit SetFees(fees_);
     }
 
-    function sum() external view onlyOwner returns (uint amount)  {
+    function sum() external view onlyOwner returns (uint amount) {
         for (uint i = 0; i < counter.current(); i++) {
             string memory projectId = projectIds[i];
             Project storage project = projects[projectId];

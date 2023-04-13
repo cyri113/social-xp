@@ -9,7 +9,6 @@ interface Fixture {
     Contract: any;
     owner: SignerWithAddress;
     relay: SignerWithAddress;
-    treasury: SignerWithAddress;
     projectOwner: SignerWithAddress;
     projectMember: SignerWithAddress;
     attacker: SignerWithAddress;
@@ -18,12 +17,12 @@ interface Fixture {
 describe("SocialXP", function () {
 
     async function deploy() {
-        const [owner, relay, treasury, projectOwner, projectMember, attacker] = await ethers.getSigners();
+        const [owner, relay, projectOwner, projectMember, attacker] = await ethers.getSigners();
 
         const Contract = await ethers.getContractFactory("SocialXP");
-        const contract = await Contract.deploy(relay.address, treasury.address)
+        const contract = await Contract.deploy(relay.address)
 
-        return { contract, Contract, owner, relay, treasury, projectOwner, projectMember, attacker }
+        return { contract, Contract, owner, relay, projectOwner, projectMember, attacker }
     }
 
     describe("Deployment", function () {
