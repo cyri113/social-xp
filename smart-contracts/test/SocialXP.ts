@@ -34,6 +34,14 @@ describe("SocialXP", function () {
             const { contract, treasury } = await loadFixture(deploy)
             expect(await contract.treasury()).to.eq(treasury.address)
         })
+        it("should have an owner", async function () {
+            const { contract, owner } = await loadFixture(deploy)
+            expect(await contract.owner()).to.eq(owner.address)
+        })
+        it("should have a setProjectMemberFee")
+        it("should have a setProjectOwnerFee")
+        it("should have a mintFee")
+        it("should have a burnFee")
     })
 
     describe("Deposit ETH", function () {
@@ -98,6 +106,7 @@ describe("SocialXP", function () {
             await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
             expect((await contract.projects('projectId')).ownerUpdatedAt).to.eq(latest + 1)
         })
+        it("should charge setProjectOwnerFee")
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectOwner } = await loadFixture(deploy)
@@ -151,6 +160,7 @@ describe("SocialXP", function () {
             await contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)
             expect((await contract.getProjectMember('projectId', 'memberId'))[1]).to.eq(latest + 1)
         })
+        it("should charge setProjectMemberFee")
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectMember } = await loadFixture(deploy)
@@ -225,6 +235,7 @@ describe("SocialXP", function () {
             await contract.connect(relay).mint('projectId', projectMember.address, 100)
             expect((await contract.projects('projectId')).totalSupply).to.eq(200)
         })
+        it("should charge mintFee")
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectMember } = await loadFixture(deploy)
@@ -300,6 +311,7 @@ describe("SocialXP", function () {
             await contract.connect(relay).burn('projectId', projectMember.address, 50)
             expect((await contract.projects('projectId')).totalSupply).to.eq(100)
         })
+        it("should charge burnFee")
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectMember } = fixture

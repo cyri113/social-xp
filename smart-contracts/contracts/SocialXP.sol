@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.18;
 
-import "hardhat/console.sol";
-
 /*
 This is the smart contract for the SocialXP Telegram bot (https://t.me/social_xp_bot). 
 The bot provides on-chain rewards for community members. SocialXP is decentralized and 
@@ -13,7 +11,10 @@ reward your members at any time by minting tokens. You can punish your members a
 time by burning their tokens too.
 */
 
-contract SocialXP {
+import "hardhat/console.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract SocialXP is Ownable {
     address payable public relay;
     address payable public treasury;
 
