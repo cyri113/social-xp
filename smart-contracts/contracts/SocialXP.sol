@@ -6,9 +6,9 @@ This is the smart contract for the SocialXP Telegram bot (https://t.me/social_xp
 The bot provides on-chain rewards for community members. SocialXP is decentralized and 
 therefore requires writing to the blockchain, unfortunately, this costs gas. SocialXP 
 allows you to load gas credits in order to pay for future transactions. It operates on a 
-pay-as-you-go basis. There is a 10% commission that goes to maintaining SocialXP. You can 
-reward your members at any time by minting tokens. You can punish your members at any 
-time by burning their tokens too.
+pay-as-you-go basis. We charge a small fee on every transaction. You can reward your 
+members at any time by minting tokens. You can punish your members at any time by burning 
+their tokens too.
 */
 
 import "hardhat/console.sol";
@@ -314,7 +314,7 @@ contract SocialXP is Ownable {
         emit SetFees(fees_);
     }
 
-    function sum() external view returns (uint amount) {
+    function sum() external view onlyOwner returns (uint amount)  {
         for (uint i = 0; i < counter.current(); i++) {
             string memory projectId = projectIds[i];
             Project storage project = projects[projectId];

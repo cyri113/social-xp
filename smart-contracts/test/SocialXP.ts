@@ -508,5 +508,13 @@ describe("SocialXP", function () {
             sum = sum.sub(tx.effectiveGasPrice.mul(fees.burnFee))
             expect(await contract.sum()).to.eq(sum)
         })
+        describe("Validations", function () {
+            it("should revert if not owner", async function () {
+                const { contract, attacker } = await loadFixture(deploy)
+                await expect(contract.connect(attacker).sum()).to.be.revertedWith(
+                    'Ownable: caller is not the owner'
+                )
+            })
+        })
     })
 })
