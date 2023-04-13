@@ -42,11 +42,10 @@ describe("SocialXP", function () {
         it("should have fees", async function () {
             const { contract } = await loadFixture(deploy)
             const expected = [
-                21,
-                100000,
-                100000,
-                150000,
-                50000,
+                100_000,
+                100_000,
+                150_000,
+                50_000,
             ]
             expect(await contract.fees()).to.deep.eq(expected)
         })
@@ -55,13 +54,12 @@ describe("SocialXP", function () {
     describe("Set Fees", function () {
 
         const newFees = {
-            gasPrice: 1,
-            projectMemberFee: 2,
-            projectOwnerFee: 3,
-            mintFee: 4,
-            burnFee: 5
+            projectMemberFee: 1,
+            projectOwnerFee: 2,
+            mintFee: 3,
+            burnFee: 4
         }
-        const expected = [1, 2, 3, 4, 5]
+        const expected = [1, 2, 3, 4]
 
         it("should set fees", async function () {
             const { contract } = await loadFixture(deploy)
@@ -135,27 +133,41 @@ describe("SocialXP", function () {
     describe("Set project owner", function () {
         it("should set the project owner", async function () {
             const { contract, relay, projectOwner } = await loadFixture(deploy)
+            await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
             expect((await contract.projects('projectId')).owner).to.eq(ethers.constants.AddressZero)
             await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
             expect((await contract.projects('projectId')).owner).to.eq(projectOwner.address)
         })
         it("should set the project owner timestamp", async function () {
             const { contract, relay, projectOwner } = await loadFixture(deploy)
+            await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
             expect((await contract.projects('projectId')).ownerUpdatedAt).to.eq(0)
             const latest = await time.latest()
             await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
             expect((await contract.projects('projectId')).ownerUpdatedAt).to.eq(latest + 1)
         })
-        it("should charge setProjectOwnerFee")
+        it("should charge setProjectOwnerFee", async function () {
+            const { contract, relay, projectOwner } = await loadFixture(deploy)
+            await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
+            const fees = await contract.fees()
+            const { deposit: state0 } = await contract.projects('projectId')
+            const receipt = await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
+            const tx = await receipt.wait()
+            const gas = tx.effectiveGasPrice.mul(fees.projectOwnerFee)
+            const { deposit: state1 } = await contract.projects('projectId')
+            expect(state1).to.eq(state0.sub(gas))
+        })
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectOwner } = await loadFixture(deploy)
+                await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
                 await expect(contract.setProjectOwner('projectId', projectOwner.address)).to.be.revertedWith(
                     'caller is not the relay'
                 )
             })
             it("should revert if update interval is less than 24h", async function () {
                 const { contract, relay, projectOwner } = await loadFixture(deploy)
+                await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
                 await contract.connect(relay).setProjectOwner('projectId', projectOwner.address)
                 await expect(contract.connect(relay).setProjectOwner('projectId', projectOwner.address)).to.be.revertedWith(
                     'can only update every 24 hours'
@@ -163,20 +175,29 @@ describe("SocialXP", function () {
             })
             it("should revert if projectId_ is empty", async function () {
                 const { contract, relay, projectOwner } = await loadFixture(deploy)
+                await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
                 await expect(contract.connect(relay).setProjectOwner('', projectOwner.address)).to.be.revertedWith(
                     'projectId_ cannot be empty'
                 )
             })
             it("should revert if account_ is address(0)", async function () {
                 const { contract, relay } = await loadFixture(deploy)
+                await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
                 await expect(contract.connect(relay).setProjectOwner('projectId', ethers.constants.AddressZero)).to.be.revertedWith(
                     'account_ cannot be address(0)'
+                )
+            })
+            it("should revert if insufficient deposit", async function () {
+                const { contract, relay, projectOwner } = await loadFixture(deploy)
+                await expect(contract.connect(relay).setProjectOwner('projectId', projectOwner.address)).to.be.revertedWith(
+                    'insufficient deposit'
                 )
             })
         })
         describe("Events", function () {
             it("should emit SetProjectOwner event", async function () {
                 const { contract, relay, projectOwner } = await loadFixture(deploy)
+                await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
                 await expect(contract.connect(relay).setProjectOwner('projectId', projectOwner.address)).to.emit(contract, "SetProjectOwner").withArgs(
                     'projectId', projectOwner.address
                 )
@@ -200,7 +221,17 @@ describe("SocialXP", function () {
             await contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)
             expect((await contract.getProjectMember('projectId', 'memberId'))[1]).to.eq(latest + 1)
         })
-        it("should charge setProjectMemberFee")
+        it("should charge setProjectMemberFee", async function () {
+            const { contract, relay, projectMember } = await loadFixture(deploy)
+            await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
+            const fees = await contract.fees()
+            const { deposit: state0 } = await contract.projects('projectId')
+            const receipt = await contract.connect(relay).setProjectMember('projectId', 'memberId', projectMember.address)
+            const tx = await receipt.wait()
+            const gas = tx.effectiveGasPrice.mul(fees.projectMemberFee)
+            const { deposit: state1 } = await contract.projects('projectId')
+            expect(state1).to.eq(state0.sub(gas))
+        })
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectMember } = await loadFixture(deploy)
@@ -275,7 +306,17 @@ describe("SocialXP", function () {
             await contract.connect(relay).mint('projectId', projectMember.address, 100)
             expect((await contract.projects('projectId')).totalSupply).to.eq(200)
         })
-        it("should charge mintFee")
+        it("should charge mintFee", async function () {
+            const { contract, relay, projectMember } = await loadFixture(deploy)
+            await contract.deposit('projectId', { value: ethers.utils.parseEther('1') })
+            const fees = await contract.fees()
+            const { deposit: state0 } = await contract.projects('projectId')
+            const receipt = await contract.connect(relay).mint('projectId', projectMember.address, 100)
+            const tx = await receipt.wait()
+            const gas = tx.effectiveGasPrice.mul(fees.mintFee)
+            const { deposit: state1 } = await contract.projects('projectId')
+            expect(state1).to.eq(state0.sub(gas))
+        })
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectMember } = await loadFixture(deploy)
@@ -351,7 +392,16 @@ describe("SocialXP", function () {
             await contract.connect(relay).burn('projectId', projectMember.address, 50)
             expect((await contract.projects('projectId')).totalSupply).to.eq(100)
         })
-        it("should charge burnFee")
+        it("should charge burnFee", async function () {
+            const { contract, relay, projectMember } = fixture
+            const fees = await contract.fees()
+            const { deposit: state0 } = await contract.projects('projectId')
+            const receipt = await contract.connect(relay).burn('projectId', projectMember.address, 100)
+            const tx = await receipt.wait()
+            const gas = tx.effectiveGasPrice.mul(fees.burnFee)
+            const { deposit: state1 } = await contract.projects('projectId')
+            expect(state1).to.eq(state0.sub(gas))
+        })
         describe("Validation", function () {
             it("should revert if not relay", async function () {
                 const { contract, projectMember } = fixture

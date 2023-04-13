@@ -16,7 +16,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SocialXP is Ownable {
     struct FeeStructure {
-        uint gasPrice;
         uint projectMemberFee;
         uint projectOwnerFee;
         uint mintFee;
@@ -45,11 +44,10 @@ contract SocialXP is Ownable {
 
     FeeStructure public fees =
         FeeStructure({
-            gasPrice: 21,
-            projectMemberFee: 100000,
-            projectOwnerFee: 100000,
-            mintFee: 150000,
-            burnFee: 50000
+            projectMemberFee: 100_000,
+            projectOwnerFee: 100_000,
+            mintFee: 150_000,
+            burnFee: 50_000
         });
 
     event Deposit(string projectId, uint value, address sender);
@@ -116,7 +114,13 @@ contract SocialXP is Ownable {
     function setProjectOwner(
         string calldata projectId_,
         address account_
-    ) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
+    )
+        external
+        checkProjectId(projectId_)
+        checkDeposit(projectId_)
+        checkAddressZero(account_)
+        onlyRelay
+    {
         Project storage project = projects[projectId_];
         require(
             block.timestamp >= project.ownerUpdatedAt + 24 hours,
@@ -125,6 +129,7 @@ contract SocialXP is Ownable {
         project.owner = account_;
         project.ownerUpdatedAt = block.timestamp;
         emit SetProjectOwner(projectId_, account_);
+        project.deposit -= tx.gasprice * fees.projectOwnerFee;
     }
 
     function getProjectMember(
@@ -146,7 +151,8 @@ contract SocialXP is Ownable {
         checkAddressZero(account_)
         onlyRelay
     {
-        Member storage member = projects[projectId_].members[memberId_];
+        Project storage project = projects[projectId_];
+        Member storage member = project.members[memberId_];
         require(
             block.timestamp >= member.updatedAt + 24 hours,
             "can only update every 24 hours"
@@ -154,6 +160,7 @@ contract SocialXP is Ownable {
         member.account = account_;
         member.updatedAt = block.timestamp;
         emit SetProjectMember(projectId_, memberId_, account_);
+        project.deposit -= tx.gasprice * fees.projectMemberFee;
     }
 
     function balanceOf(
@@ -185,6 +192,7 @@ contract SocialXP is Ownable {
         project.balanceOf[account_] += amount_;
         project.totalSupply += amount_;
         emit Mint(projectId_, account_, amount_);
+        project.deposit -= tx.gasprice * fees.mintFee;
     }
 
     function burn(
@@ -220,6 +228,7 @@ contract SocialXP is Ownable {
             delete project.accounts[project.counter - 1];
             project.counter--;
         }
+        project.deposit -= tx.gasprice * fees.burnFee;
     }
 
     function position(
