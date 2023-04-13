@@ -57,6 +57,14 @@ contract SocialXP {
         _;
     }
 
+    modifier checkDeposit(string calldata projectId_) {
+        require(
+            projects[projectId_].deposit >= gasleft(),
+            "insufficient deposit"
+        );
+        _;
+    }
+
     modifier onlyRelay() {
         _checkRelay();
         _;
@@ -114,6 +122,7 @@ contract SocialXP {
     )
         external
         checkProjectId(projectId_)
+        checkDeposit(projectId_)
         checkMemberId(memberId_)
         checkAddressZero(account_)
         onlyRelay
@@ -139,7 +148,13 @@ contract SocialXP {
         string calldata projectId_,
         address account_,
         uint amount_
-    ) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
+    )
+        external
+        checkProjectId(projectId_)
+        checkDeposit(projectId_)
+        checkAddressZero(account_)
+        onlyRelay
+    {
         require(amount_ > 0, "value cannot be 0");
         Project storage project = projects[projectId_];
 
@@ -157,7 +172,13 @@ contract SocialXP {
         string calldata projectId_,
         address account_,
         uint amount_
-    ) external checkProjectId(projectId_) checkAddressZero(account_) onlyRelay {
+    )
+        external
+        checkProjectId(projectId_)
+        checkDeposit(projectId_)
+        checkAddressZero(account_)
+        onlyRelay
+    {
         require(amount_ > 0, "value cannot be 0");
         Project storage project = projects[projectId_];
         require(project.balanceOf[account_] >= amount_, "insufficient balance");
