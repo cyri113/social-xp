@@ -224,7 +224,12 @@ describe("SocialXP", function () {
             })
         })
         describe("Events", function () {
-            it("should emit Mint event")
+            it("should emit Mint event", async function () {
+                const { contract, relay, projectMember } = await loadFixture(deploy)
+                await expect(contract.connect(relay).mint('projectId', projectMember.address, 100)).to.emit(contract, "Mint").withArgs(
+                    'projectId', projectMember.address, 100
+                )
+            })
         })
     })
     // describe("Burn")

@@ -27,6 +27,7 @@ contract SocialXP {
     event Deposit(string projectId, uint value, address sender);
     event SetProjectOwner(string projectId, address owner);
     event SetProjectMember(string projectId, string memberId, address account);
+    event Mint(string projectId, address account, uint amount);
 
     mapping(string => Project) public projects;
 
@@ -101,6 +102,7 @@ contract SocialXP {
         Project storage project = projects[projectId_];
         project.balanceOf[account_] += amount_;
         project.totalSupply += amount_;
+        emit Mint(projectId_, account_, amount_);
     }
 
 }
